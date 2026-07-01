@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>the line</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ============================================================
+     CONFIG — replace with your deployed Apps Script Web App URL
+     ============================================================ */
+  /* See the <script> block near the bottom: const SCRIPT_URL = "..." */
+
+  :root{
+    --paper: #FBF6EC;
+    --paper-2: #F3EBDB;
+    --ink: #2E2B3D;
+    --ink-soft: #6b6779;
+    --string: #C9B896;
+    --i-color: #C2694A;
+    --i-color-soft: #EFDACE;
+    --n-color: #4F7C6C;
+    --n-color-soft: #DCE7DF;
+    --gold: #D8A857;
+    --shadow: rgba(46,43,61,0.12);
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background: var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(46,43,61,0.05) 1px, transparent 1px);
+    background-size: 22px 22px;
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 24px;
+  }
+
+  /* ---------------- LOGIN ---------------- */
+  .note{
+    background: var(--paper-2);
+    border-radius: 4px;
+    padding: 48px 40px 40px;
+    width: 100%;
+    max-width: 360px;
+    box-shadow: 0 18px 40px var(--shadow);
+    position: relative;
+    text-align:center;
+    transform: rotate(-0.6deg);
+    border: 1px solid rgba(46,43,61,0.06);
+  }
+  .note::before{
+    content:"";
+    position:absolute;
+    top:-10px; left:50%;
+    transform: translateX(-50%) rotate(3deg);
+    width:54px; height:20px;
+    background: rgba(216,168,87,0.55);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  }
+
+  .can-icon{
+    width: 72px;
+    margin: 0 auto 18px;
+    display:block;
+  }
+
+  .note h1{
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.7rem;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .note p.sub{
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-soft);
+    margin: 0 0 28px;
+  }
+
+  .pw-field{
+    width: 100%;
+    padding: 14px 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 1rem;
+    letter-spacing: 0.15em;
+    border: none;
+    border-bottom: 2px dashed var(--string);
+    background: transparent;
+    color: var(--ink);
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .pw-field:focus{ border-color: var(--gold); }
+  .pw-field::placeholder{ color: rgba(46,43,61,0.35); letter-spacing: 0.08em; }
+
+  .connect-btn{
+    margin-top: 22px;
+    width: 100%;
+    padding: 13px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 3px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.2s;
+  }
+  .connect-btn:hover{ background: #46425c; }
+  .connect-btn:active{ transform: scale(0.98); }
+
+  .error-msg{
+    margin-top: 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--i-color);
+    height: 16px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .error-msg.show{ opacity: 1; }
+
+  @keyframes shake{
+    10%,90% { transform: translateX(-1px) rotate(-0.6deg); }
+    20%,80% { transform: translateX(2px) rotate(-0.6deg); }
+    30%,50%,70% { transform: translateX(-4px) rotate(-0.6deg); }
+    40%,60% { transform: translateX(4px) rotate(-0.6deg); }
+  }
+  .note.shake{ animation: shake 0.5s; }
+
+  /* ---------------- CHAT ---------------- */
+  .chat-wrap{
+    display:none;
+    width: 100%;
+    max-width: 480px;
+    height: 100vh;
+    max-height: 780px;
+    background: var(--paper-2);
+    border-radius: 6px;
+    box-shadow: 0 24px 60px var(--shadow);
+    overflow: hidden;
+    flex-direction: column;
+    border: 1px solid rgba(46,43,61,0.06);
+  }
+
+  .line-header{
+    padding: 20px 20px 12px;
+    text-align:center;
+    position: relative;
+    background: linear-gradient(180deg, var(--paper-2), rgba(243,235,219,0.4));
+  }
+  .line-header svg{ display:block; margin: 0 auto; }
+  .line-header .title{
+    font-family:'Fraunces', serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .line-header .status{
+    font-family:'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .status-dot{
+    display:inline-block;
+    width:6px; height:6px;
+    border-radius:50%;
+    background: var(--n-color);
+    margin-right: 5px;
+    animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:0.35; }
+  }
+
+  .messages{
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 18px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .messages::-webkit-scrollbar{ width: 6px; }
+  .messages::-webkit-scrollbar-thumb{ background: var(--string); border-radius: 3px; }
+
+  .empty-state{
+    margin: auto;
+    text-align:center;
+    color: var(--ink-soft);
+    font-family:'Space Mono', monospace;
+    font-size: 0.78rem;
+    line-height:1.6;
+    max-width: 220px;
+  }
+
+  .bubble-row{
+    display:flex;
+    align-items:flex-end;
+    gap: 8px;
+    max-width: 82%;
+  }
+  .bubble-row.mine{ align-self: flex-end; flex-direction: row-reverse; }
+  .bubble-row.theirs{ align-self: flex-start; }
+
+  .avatar{
+    width: 26px; height: 26px;
+    min-width: 26px;
+    border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size: 0.78rem;
+    color: var(--paper);
+  }
+  .avatar.I{ background: var(--i-color); }
+  .avatar.N{ background: var(--n-color); }
+
+  .bubble{
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    position: relative;
+    word-wrap: break-word;
+    box-shadow: 0 2px 6px rgba(46,43,61,0.06);
+  }
+  .bubble-row.mine .bubble{
+    background: var(--i-color-soft);
+    border-bottom-right-radius: 3px;
+    color: #5A2E1E;
+  }
+  .bubble-row.theirs .bubble{
+    background: var(--n-color-soft);
+    border-bottom-left-radius: 3px;
+    color: #234339;
+  }
+  body[data-role="N"] .bubble-row.mine .bubble{
+    background: var(--n-color-soft);
+    border-bottom-right-radius: 3px;
+    color: #234339;
+  }
+  body[data-role="N"] .bubble-row.theirs .bubble{
+    background: var(--i-color-soft);
+    border-bottom-left-radius: 3px;
+    color: #5A2E1E;
+  }
+  body[data-role="N"] .avatar.I{ background: var(--i-color); }
+
+  .timestamp{
+    font-family:'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--ink-soft);
+    margin-top: 4px;
+    text-align: center;
+  }
+  .bubble-row.mine .timestamp{ text-align: right; }
+  .bubble-row.theirs .timestamp{ text-align: left; }
+
+  .composer{
+    display:flex;
+    gap: 10px;
+    padding: 14px 16px;
+    border-top: 1px dashed var(--string);
+    background: var(--paper);
+  }
+  .composer input{
+    flex:1;
+    border: none;
+    background: var(--paper-2);
+    border-radius: 20px;
+    padding: 11px 16px;
+    font-family:'Inter', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    color: var(--ink);
+  }
+  .composer input:focus{ box-shadow: 0 0 0 2px var(--gold) inset; }
+  .send-btn{
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: var(--ink);
+    color: var(--paper);
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition: transform 0.15s, background 0.2s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover{ background:#46425c; }
+  .send-btn:active{ transform: scale(0.9) rotate(15deg); }
+  .send-btn:disabled{ opacity: 0.4; cursor: default; }
+
+  @media (max-width: 500px){
+    .chat-wrap{ max-height: 100vh; border-radius: 0; }
+    .screen{ padding: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .status-dot{ animation: none; }
+    .note.shake{ animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="screen" id="loginScreen">
+  <div class="note" id="noteCard">
+    <svg class="can-icon" viewBox="0 0 100 60" fill="none">
+      <path d="M2 30 Q 35 8, 40 30" stroke="#C9B896" stroke-width="1.5" stroke-dasharray="3 3" fill="none"/>
+      <rect x="0" y="24" width="16" height="18" rx="1" fill="#C2694A" transform="rotate(-8 8 33)"/>
+      <ellipse cx="8" cy="24" rx="8" ry="2.4" fill="#e0906f" transform="rotate(-8 8 33)"/>
+      <path d="M60 30 Q 65 8, 98 30" stroke="#C9B896" stroke-width="1.5" stroke-dasharray="3 3" fill="none"/>
+      <rect x="84" y="24" width="16" height="18" rx="1" fill="#4F7C6C" transform="rotate(8 92 33)"/>
+      <ellipse cx="92" cy="24" rx="8" ry="2.4" fill="#6ea08c" transform="rotate(8 92 33)"/>
+    </svg>
+    <h1>the line</h1>
+    <p class="sub">whisper the word to connect</p>
+    <input type="password" class="pw-field" id="pwInput" placeholder="• • • • •" autocomplete="off" autofocus>
+    <button class="connect-btn" id="connectBtn">Connect the line</button>
+    <div class="error-msg" id="errorMsg">that's not the word.</div>
+  </div>
+</div>
+
+<div class="screen" id="chatScreen" style="display:none;">
+  <div class="chat-wrap" id="chatWrap">
+    <div class="line-header">
+      <svg width="140" height="34" viewBox="0 0 140 34" fill="none">
+        <path id="stringPath" d="M8 12 Q 70 30, 132 12" stroke="#C9B896" stroke-width="1.5" stroke-dasharray="3 3" fill="none"/>
+        <circle cx="8" cy="12" r="7" fill="var(--i-color)"/>
+        <text x="8" y="15.5" font-family="Fraunces, serif" font-size="8" fill="#FBF6EC" text-anchor="middle" font-weight="600">I</text>
+        <circle cx="132" cy="12" r="7" fill="var(--n-color)"/>
+        <text x="132" y="15.5" font-family="Fraunces, serif" font-size="8" fill="#FBF6EC" text-anchor="middle" font-weight="600">N</text>
+      </svg>
+      <div class="title">the line</div>
+      <div class="status"><span class="status-dot"></span><span id="statusText">connected as ...</span></div>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="empty-state" id="emptyState">no words on the line yet.<br>say something.</div>
+    </div>
+
+    <form class="composer" id="composerForm">
+      <input type="text" id="msgInput" placeholder="say something down the line..." autocomplete="off">
+      <button type="submit" class="send-btn" id="sendBtn" aria-label="Send">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  /* ============================================================
+     1) PASTE YOUR DEPLOYED APPS SCRIPT WEB APP URL BELOW
+     ============================================================ */
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxzY53cRQykdoCrlHnfZeikQaKR098llsLdMCfXgVdD0NIelOyxzip16Z2hTZbKXL6lQg/exec";
+
+  const POLL_INTERVAL_MS = 3000;
+
+  const PASSWORDS = { "iban": "I", "cute": "N" };
+
+  let role = sessionStorage.getItem("chatRole") || null;
+  let pollTimer = null;
+  let lastRenderedCount = 0;
+
+  const loginScreen = document.getElementById("loginScreen");
+  const chatScreen = document.getElementById("chatScreen");
+  const noteCard = document.getElementById("noteCard");
+  const pwInput = document.getElementById("pwInput");
+  const errorMsg = document.getElementById("errorMsg");
+  const connectBtn = document.getElementById("connectBtn");
+  const messagesEl = document.getElementById("messages");
+  const emptyState = document.getElementById("emptyState");
+  const composerForm = document.getElementById("composerForm");
+  const msgInput = document.getElementById("msgInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const statusText = document.getElementById("statusText");
+
+  function tryLogin(){
+    const val = pwInput.value.trim().toLowerCase();
+    const matched = PASSWORDS[val];
+    if(matched){
+      role = matched;
+      sessionStorage.setItem("chatRole", role);
+      enterChat();
+    } else {
+      errorMsg.classList.add("show");
+      noteCard.classList.remove("shake");
+      void noteCard.offsetWidth;
+      noteCard.classList.add("shake");
+      pwInput.value = "";
+      pwInput.focus();
+    }
+  }
+
+  connectBtn.addEventListener("click", tryLogin);
+  pwInput.addEventListener("keydown", e => { if(e.key === "Enter") tryLogin(); });
+
+  function enterChat(){
+    document.body.setAttribute("data-role", role);
+    loginScreen.style.display = "none";
+    chatScreen.style.display = "flex";
+    statusText.textContent = "connected as " + role;
+    fetchMessages();
+    pollTimer = setInterval(fetchMessages, POLL_INTERVAL_MS);
+    msgInput.focus();
+  }
+
+  if(role){ enterChat(); }
+
+  function formatTime(iso){
+    try{
+      const d = new Date(iso);
+      return d.toLocaleString([], { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+    }catch(e){ return iso; }
+  }
+
+  async function fetchMessages(){
+    if(!SCRIPT_URL || SCRIPT_URL.indexOf("PASTE_YOUR") !== -1) return;
+    try{
+      const res = await fetch(SCRIPT_URL + "?action=read");
+      if(!res.ok){
+        showConnError("server said: " + res.status);
+        return;
+      }
+      const data = await res.json();
+      if(data.status !== "success"){
+        showConnError("bad response shape");
+        return;
+      }
+      clearConnError();
+      renderMessages(data.data || []);
+    }catch(err){
+      showConnError(err.message || "fetch blocked");
+    }
+  }
+
+  function showConnError(msg){
+    statusText.textContent = "connection issue: " + msg;
+    statusText.style.color = "var(--i-color)";
+  }
+  function clearConnError(){
+    statusText.textContent = "connected as " + role;
+    statusText.style.color = "";
+  }
+
+  function renderMessages(list){
+    if(list.length === lastRenderedCount) return;
+    lastRenderedCount = list.length;
+
+    if(list.length === 0){
+      messagesEl.innerHTML = "";
+      messagesEl.appendChild(emptyState);
+      return;
+    }
+
+    messagesEl.innerHTML = "";
+    list.forEach(item => {
+      const sender = (item.name || "").trim().toUpperCase();
+      const mine = sender === role;
+      const row = document.createElement("div");
+      row.className = "bubble-row " + (mine ? "mine" : "theirs");
+
+      const avatar = document.createElement("div");
+      avatar.className = "avatar " + (sender === "I" ? "I" : "N");
+      avatar.textContent = sender === "I" ? "I" : "N";
+
+      const col = document.createElement("div");
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.textContent = item.message;
+
+      const ts = document.createElement("div");
+      ts.className = "timestamp";
+      ts.textContent = formatTime(item.timestamp);
+
+      col.appendChild(bubble);
+      col.appendChild(ts);
+      row.appendChild(avatar);
+      row.appendChild(col);
+      messagesEl.appendChild(row);
+    });
+
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  composerForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = msgInput.value.trim();
+    if(!text || !SCRIPT_URL || SCRIPT_URL.indexOf("PASTE_YOUR") !== -1) return;
+
+    sendBtn.disabled = true;
+    msgInput.value = "";
+
+    try{
+      const url = SCRIPT_URL + "?name=" + encodeURIComponent(role) + "&message=" + encodeURIComponent(text);
+      await fetch(url);
+      await fetchMessages();
+    }catch(err){
+      showConnError(err.message || "send blocked");
+      msgInput.value = text;
+    }finally{
+      sendBtn.disabled = false;
+      msgInput.focus();
+    }
+  });
+</script>
+</body>
+</html>
