@@ -440,23 +440,65 @@
     }catch(e){ return iso; }
   }
 
-  async function fetchMessages(){
-    if(!SCRIPT_URL || SCRIPT_URL.indexOf("PASTE_YOUR") !== -1) return;
-    try{
-      const res = await fetch(SCRIPT_URL + "?action=read");
-      if(!res.ok){
-        showConnError("server said: " + res.status);
+  function jsonpRequest(params){
+    return new Promise((resolve, reject) => {
+      if(!SCRIPT_URL || SCRIPT_URL.indexOf("PASTE_YOUR") !== -1){
+        reject(new Error("missing Apps Script URL"));
         return;
       }
-      const data = await res.json();
-      if(data.status !== "success"){
-        showConnError("bad response shape");
+
+      const callbackName = "__theLineCallback_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+      const url = new URL(SCRIPT_URL);
+
+      Object.keys(params || {}).forEach(key => url.searchParams.set(key, params[key]));
+      url.searchParams.set("callback", callbackName);
+      url.searchParams.set("_", Date.now());
+
+      const script = document.createElement("script");
+      let done = false;
+
+      const cleanup = () => {
+        done = true;
+        delete window[callbackName];
+        script.remove();
+      };
+
+      const timer = setTimeout(() => {
+        if(done) return;
+        cleanup();
+        reject(new Error("Apps Script timeout"));
+      }, 12000);
+
+      window[callbackName] = (data) => {
+        if(done) return;
+        clearTimeout(timer);
+        cleanup();
+        resolve(data);
+      };
+
+      script.onerror = () => {
+        if(done) return;
+        clearTimeout(timer);
+        cleanup();
+        reject(new Error("Apps Script could not be loaded"));
+      };
+
+      script.src = url.toString();
+      document.body.appendChild(script);
+    });
+  }
+
+  async function fetchMessages(){
+    try{
+      const data = await jsonpRequest({ action: "read" });
+      if(!data || data.status !== "success"){
+        showConnError((data && data.message) ? data.message : "bad response shape");
         return;
       }
       clearConnError();
       renderMessages(data.data || []);
     }catch(err){
-      showConnError(err.message || "fetch blocked");
+      showConnError(err.message || "connection blocked");
     }
   }
 
@@ -512,14 +554,16 @@
   composerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const text = msgInput.value.trim();
-    if(!text || !SCRIPT_URL || SCRIPT_URL.indexOf("PASTE_YOUR") !== -1) return;
+    if(!text) return;
 
     sendBtn.disabled = true;
     msgInput.value = "";
 
     try{
-      const url = SCRIPT_URL + "?name=" + encodeURIComponent(role) + "&message=" + encodeURIComponent(text);
-      await fetch(url);
+      const data = await jsonpRequest({ name: role, message: text });
+      if(!data || data.status !== "success"){
+        throw new Error((data && data.message) ? data.message : "message not saved");
+      }
       await fetchMessages();
     }catch(err){
       showConnError(err.message || "send blocked");
