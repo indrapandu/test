@@ -424,6 +424,7 @@
     document.body.setAttribute("data-role", role);
     loginScreen.style.display = "none";
     chatScreen.style.display = "flex";
+    chatWrap.style.display = "flex";
     statusText.textContent = "connected as " + role;
     fetchMessages();
     pollTimer = setInterval(fetchMessages, POLL_INTERVAL_MS);
